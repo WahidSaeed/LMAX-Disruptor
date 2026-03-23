@@ -2,6 +2,8 @@
 
 A browser-based, terminal-themed visualisation of the **LMAX Disruptor** pattern — the lock-free, ultra-low-latency inter-thread messaging library used in high-frequency trading systems.
 
+[LMAX Disruptor Live Demo]([https://lmax-exchange.github.io/disruptor/disruptor.html](https://wahidsaeed.github.io/LMAX-Disruptor/))
+
 ---
 
 ## What is the LMAX Disruptor?
