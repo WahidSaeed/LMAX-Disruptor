@@ -106,7 +106,7 @@ function _recordStall(bottleneckIdx) {
     state.totalStallEvents++;
 
     addLog('warn',
-      `<span class="red">⛔ PRODUCER STALLED</span>` +
+      `<span class="red">PRODUCER STALLED</span>` +
       ` — buffer full (${state.bufSize}/${state.bufSize} slots)` +
       ` · gated by <span class="amber">C${bottleneckIdx + 1}</span>` +
       ` @ seq <span class="hi">${state.consumerSeqs[bottleneckIdx]}</span>` +
