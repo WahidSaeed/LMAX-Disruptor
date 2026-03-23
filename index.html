@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LMAX Disruptor — Terminal Sim</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════
+       HEADER — title bar with live status/clock
+  ════════════════════════════════════════════ -->
+  <header class="header">
+    <div class="header-title">
+      <!-- macOS-style window dots -->
+      <div class="dot-row">
+        <div class="dot red"></div>
+        <div class="dot amber"></div>
+        <div class="dot grn"></div>
+      </div>
+      <span class="title-text">LMAX Disruptor — Ring Buffer Simulation</span>
+    </div>
+    <div class="header-meta">
+      <div class="meta-item">VERSION <span>3.4.2</span></div>
+      <div class="meta-item">BUFFER <span id="hdrBufSize">64</span></div>
+      <div class="meta-item">STATUS <span id="hdrStatus" style="color:var(--amber)">IDLE</span></div>
+      <div class="meta-item" id="clockEl">00:00:00</div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════
+       MAIN LAYOUT
+       Left  — ring buffer canvas (spans 2 rows)
+       Right — stats + controls (top) / log (bottom)
+  ════════════════════════════════════════════ -->
+  <div class="layout">
+
+    <!-- ── LEFT: Animated ring buffer canvas ── -->
+    <div class="panel ring-panel">
+      <div class="panel-header">Ring Buffer — Circular Event Store</div>
+      <canvas id="ringCanvas"></canvas>
+
+      <!-- Slot colour legend -->
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#39ff14"></div>AVAILABLE</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#005577"></div>PUBLISHED</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#00e5ff"></div>CONSUMING</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ffb300"></div>CLAIMED¹</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#0d3a0d"></div>PROCESSED</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#7a1515"></div>BACKPRESSURE</div>
+        <div class="legend-item" style="color:var(--text3);font-size:8px">¹Work Pool only</div>
+      </div>
+    </div>
+
+    <!-- ── RIGHT TOP: Stats + Controls ── -->
+    <div class="panel stats-panel">
+
+      <!-- Performance metrics grid -->
+      <div class="panel-header">Performance Metrics</div>
+      <div class="stats-grid">
+        <div class="stat-block">
+          <div class="stat-label">Throughput</div>
+          <div class="stat-value" id="statThroughput">0</div>
+          <div class="stat-label">events/sec</div>
+          <div class="stat-bar"><div class="stat-bar-fill" id="barThroughput" style="width:0%"></div></div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Latency</div>
+          <div class="stat-value cyan" id="statLatency">0</div>
+          <div class="stat-label">nanoseconds</div>
+          <div class="stat-bar"><div class="stat-bar-fill stat-bar-fill--cyan" id="barLatency" style="width:0%"></div></div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Published</div>
+          <div class="stat-value amber" id="statPublished">0</div>
+          <div class="stat-label">total events</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Consumed</div>
+          <div class="stat-value" id="statConsumed">0</div>
+          <div class="stat-label">total events</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Buffer Fill</div>
+          <div class="stat-value" id="statFill">0%</div>
+          <div class="stat-label">utilization</div>
+          <div class="stat-bar"><div class="stat-bar-fill" id="barFill" style="width:0%"></div></div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Wrap-arounds</div>
+          <div class="stat-value red" id="statWraps">0</div>
+          <div class="stat-label">buffer cycles</div>
+        </div>
+      </div>
+
+      <!-- Topology toggle: Broadcast vs Work Pool -->
+      <div class="panel-header" style="margin-top:1px">Topology</div>
+      <div class="controls-panel">
+        <div class="ws-group" id="topoGroup">
+          <button class="ws-pill sel" data-topo="broadcast" style="min-width:90px">◎ Broadcast</button>
+          <button class="ws-pill"     data-topo="workpool"  style="min-width:90px">⇌ Work Pool</button>
+        </div>
+        <div class="meta-item" id="topoDesc">
+          <span style="color:var(--cyan)">All consumers read every event — parallel pipeline handlers</span>
+        </div>
+      </div>
+
+      <!-- Wait strategy selector -->
+      <div class="panel-header" style="margin-top:1px">Wait Strategy</div>
+      <div class="controls-panel">
+        <div class="ws-group" id="wsGroup">
+          <button class="ws-pill sel" data-ws="BusySpin">BusySpin</button>
+          <button class="ws-pill"     data-ws="Yielding">Yielding</button>
+          <button class="ws-pill"     data-ws="Sleeping">Sleeping</button>
+          <button class="ws-pill"     data-ws="Blocking">Blocking</button>
+          <button class="ws-pill"     data-ws="LiteSpin">LiteSpin</button>
+        </div>
+        <div class="meta-item">
+          ACTIVE: <span id="wsDesc" style="color:var(--amber)">CPU spin-loop; max throughput, 100% core usage</span>
+        </div>
+      </div>
+
+      <!-- Simulation controls -->
+      <div class="panel-header" style="margin-top:1px">Controls</div>
+      <div class="controls-panel">
+
+        <!-- Sliders -->
+        <div class="control-row">
+          <span class="ctrl-label">PRODUCERS</span>
+          <input type="range" id="sldrProducers" min="1" max="4" value="1">
+          <span class="range-val" id="valProducers">1</span>
+        </div>
+        <div class="control-row">
+          <span class="ctrl-label">CONSUMERS</span>
+          <input type="range" id="sldrConsumers" min="1" max="6" value="3">
+          <span class="range-val" id="valConsumers">3</span>
+        </div>
+        <div class="control-row">
+          <span class="ctrl-label">PUB RATE</span>
+          <input type="range" id="sldrRate" min="1" max="100" value="40">
+          <span class="range-val" id="valRate">40</span>
+        </div>
+
+        <!-- Buffer size (must be power of two) -->
+        <div class="control-row">
+          <span class="ctrl-label">BUF SIZE</span>
+          <div class="ws-group" id="bufGroup">
+            <button class="ws-pill sel" data-buf="64">64</button>
+            <button class="ws-pill"     data-buf="128">128</button>
+            <button class="ws-pill"     data-buf="256">256</button>
+            <button class="ws-pill"     data-buf="512">512</button>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="control-row" style="gap:6px;">
+          <button class="btn btn--active" id="btnStart">▶ START</button>
+          <button class="btn btn--danger"  id="btnStop">■ STOP</button>
+          <button class="btn btn--amber"   id="btnReset">↺ RESET</button>
+          <button class="btn"              id="btnBurst">⚡ BURST</button>
+        </div>
+
+        <!-- Throttle a single consumer to force backpressure -->
+        <div class="control-row" style="gap:6px; flex-wrap:wrap;">
+          <span class="ctrl-label">SLOW C</span>
+          <div class="ws-group" id="slowGroup">
+            <button class="ws-pill sel" data-slow="-1">OFF</button>
+            <button class="ws-pill" data-slow="0">C1</button>
+            <button class="ws-pill" data-slow="1">C2</button>
+            <button class="ws-pill" data-slow="2">C3</button>
+          </div>
+        </div>
+        <div class="meta-item" style="padding-bottom:4px">
+          <span id="slowDesc" style="color:var(--text3)">Throttle one consumer to 1/8 speed — forces backpressure</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RIGHT BOTTOM: Terminal event log ── -->
+    <div class="panel log-panel">
+      <div class="panel-header">Event Log — stdout</div>
+      <div id="logOutput"></div>
+      <div class="prompt-line">disruptor-sim<span class="cursor">█</span></div>
+    </div>
+
+  </div><!-- /.layout -->
+
+  <!--
+    Script load order matters:
+      1. constants  — shared lookup tables (no dependencies)
+      2. state      — simulation state object + initSlots()
+      3. renderer   — canvas drawing (reads state)
+      4. simulation — tick logic (reads/writes state, calls renderer)
+      5. ui         — DOM updates, logging, sim lifecycle
+      6. controls   — event listeners + boot sequence (wires everything together)
+  -->
+  <script src="js/constants.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/simulation.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/controls.js"></script>
+
+</body>
+</html>
