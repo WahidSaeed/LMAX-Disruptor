@@ -1,0 +1,481 @@
+/* ═══════════════════════════════════════════════════════
+   LMAX Disruptor Terminal Sim — Stylesheet
+   Terminal / CRT aesthetic with green-on-black palette
+════════════════════════════════════════════════════════ */
+
+/* ── Design tokens ───────────────────────────────────── */
+:root {
+  /* Backgrounds (darkest → lightest) */
+  --bg:     #0a0c0a;
+  --bg2:    #0f1210;
+  --bg3:    #141814;
+
+  /* Borders */
+  --border: #1f2b1f;
+
+  /* Brand colours */
+  --green:  #39ff14;
+  --green2: #22cc00;
+  --green3: #0f7a00;
+  --green4: #063d00;
+  --amber:  #ffb300;
+  --red:    #ff3b3b;
+  --cyan:   #00e5ff;
+
+  /* Text hierarchy */
+  --text:   #c8e6c8;   /* primary */
+  --text2:  #7da87d;   /* secondary */
+  --text3:  #4a6b4a;   /* muted */
+
+  /* Glow shadows */
+  --glow:   0 0 8px  #39ff1440;
+  --glow2:  0 0 16px #39ff1466;
+  --glow3:  0 0 32px #39ff1488;
+}
+
+/* ── Reset ───────────────────────────────────────────── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ── Base ────────────────────────────────────────────── */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', 'Share Tech Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* CRT scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.12) 2px,
+    rgba(0, 0, 0, 0.12) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* CRT vignette */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.7) 100%);
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* ── Header ──────────────────────────────────────────── */
+.header {
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* macOS-style window control dots */
+.dot-row { display: flex; gap: 6px; }
+.dot      { width: 10px; height: 10px; border-radius: 50%; }
+.dot.red  { background: #ff5f57; box-shadow: 0 0 6px #ff5f57aa; }
+.dot.amber{ background: #ffbd2e; box-shadow: 0 0 6px #ffbd2eaa; }
+.dot.grn  { background: #27c93f; box-shadow: 0 0 6px #27c93faa; }
+
+.title-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--green);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-shadow: var(--glow2);
+}
+
+.header-meta {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.meta-item {
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 1px;
+}
+
+.meta-item span {
+  color: var(--green);
+  font-weight: 500;
+}
+
+/* ── Main layout ─────────────────────────────────────── */
+/*
+  Two-column grid:
+    Left  (1fr)   — ring canvas, spans both rows
+    Right (340px) — stats panel (top) + log panel (bottom)
+*/
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  grid-template-rows: auto 1fr;
+  gap: 1px;
+  height: calc(100vh - 49px);
+  background: var(--border); /* gap colour */
+}
+
+.panel {
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* Section header bar used inside panels */
+.panel-header {
+  padding: 6px 14px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-header::before {
+  content: '▸';
+  color: var(--green);
+}
+
+/* ── Ring buffer canvas ──────────────────────────────── */
+.ring-panel {
+  grid-row: 1 / 3;   /* spans both rows */
+  display: flex;
+  flex-direction: column;
+}
+
+#ringCanvas {
+  flex: 1;
+  display: block;
+  width: 100%;
+}
+
+/* ── Stats panel ─────────────────────────────────────── */
+.stats-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--border);
+}
+
+/* 2-column grid of stat blocks */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  flex: 1;
+}
+
+.stat-block {
+  background: var(--bg);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-label {
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--green);
+  text-shadow: var(--glow2);
+  line-height: 1;
+}
+
+/* Colour modifier classes for stat values */
+.stat-value.amber { color: var(--amber); text-shadow: 0 0 12px #ffb30066; }
+.stat-value.red   { color: var(--red);   text-shadow: 0 0 12px #ff3b3b66; }
+.stat-value.cyan  { color: var(--cyan);  text-shadow: 0 0 12px #00e5ff66; }
+
+/* Progress bar beneath a stat */
+.stat-bar {
+  height: 3px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  background: var(--green3);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 6px var(--green3);
+}
+
+.stat-bar-fill--cyan {
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan);
+}
+
+/* ── Controls panel ──────────────────────────────────── */
+.controls-panel {
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg);
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ctrl-label {
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 1px;
+  min-width: 90px;
+  text-transform: uppercase;
+}
+
+/* ── Buttons ─────────────────────────────────────────── */
+.btn {
+  background: transparent;
+  border: 1px solid var(--green3);
+  color: var(--green);
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 4px 12px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background: var(--green4);
+  border-color: var(--green);
+  box-shadow: var(--glow);
+}
+
+.btn--active {
+  background: var(--green3);
+  border-color: var(--green);
+  color: #000;
+  box-shadow: var(--glow2);
+}
+
+.btn--danger {
+  border-color: #7a1515;
+  color: var(--red);
+}
+
+.btn--danger:hover {
+  background: #3d0a0a;
+  border-color: var(--red);
+}
+
+.btn--amber {
+  border-color: #7a5200;
+  color: var(--amber);
+}
+
+.btn--amber:hover {
+  background: #3d2900;
+  border-color: var(--amber);
+}
+
+/* ── Range sliders ───────────────────────────────────── */
+input[type=range] {
+  -webkit-appearance: none;
+  flex: 1;
+  height: 3px;
+  background: var(--bg3);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  cursor: pointer;
+}
+
+.range-val {
+  font-size: 10px;
+  color: var(--green);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* ── Pill selector groups (topology, wait strategy, etc.) */
+.ws-group {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.ws-pill {
+  font-size: 9px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  color: var(--text3);
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.15s;
+  background: transparent;
+  font-family: inherit;
+  text-transform: uppercase;
+}
+
+.ws-pill.sel {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: #3d2900;
+}
+
+.ws-pill:hover {
+  border-color: var(--text3);
+  color: var(--text);
+}
+
+/* ── Terminal log panel ──────────────────────────────── */
+.log-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+#logOutput {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 14px 14px;
+  font-size: 10px;
+  line-height: 1.7;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+#logOutput::-webkit-scrollbar       { width: 4px; }
+#logOutput::-webkit-scrollbar-thumb { background: var(--border); }
+
+/* One line in the log output */
+.log-line {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.log-ts {
+  color: var(--text3);
+  min-width: 70px;
+}
+
+/* Coloured tag badge (PROD / CONS / SYS / WARN) */
+.log-tag {
+  padding: 0 5px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  border-radius: 2px;
+  min-width: 52px;
+  text-align: center;
+  display: inline-block;
+}
+
+.log-tag.producer { background: var(--green4); color: var(--green); border: 1px solid var(--green3); }
+.log-tag.consumer { background: #001f3d;       color: var(--cyan);  border: 1px solid #005577; }
+.log-tag.system   { background: #3d2a00;       color: var(--amber); border: 1px solid #7a5200; }
+.log-tag.warn     { background: #3d0a0a;       color: var(--red);   border: 1px solid #7a1515; }
+
+/* Log message body — inline colour helpers */
+.log-msg        { color: var(--text2); flex: 1; }
+.log-msg .hi    { color: var(--text); }
+.log-msg .green { color: var(--green); }
+.log-msg .cyan  { color: var(--cyan); }
+.log-msg .amber { color: var(--amber); }
+.log-msg .red   { color: var(--red); }
+
+/* Fake shell prompt at the bottom of the log */
+.prompt-line {
+  padding: 6px 14px;
+  font-size: 10px;
+  color: var(--text3);
+  border-top: 1px solid var(--border);
+}
+
+.prompt-line::before {
+  content: '$ ';
+  color: var(--green);
+}
+
+/* ── Slot colour legend ───────────────────────────────── */
+.legend {
+  display: flex;
+  gap: 14px;
+  padding: 6px 14px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 1px;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* ── Animations ──────────────────────────────────────── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+.cursor {
+  animation: blink 1s infinite;
+  color: var(--green);
+}
